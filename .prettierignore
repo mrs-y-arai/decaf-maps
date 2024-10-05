@@ -1,0 +1,7 @@
+node_modules
+.git
+public
+README.md
+package-lock.json
+.next
+pull_request_template.md
