@@ -1,3 +1,27 @@
 {
-  "extends": ["next/core-web-vitals", "next/typescript"]
+  "extends": [
+    "next/core-web-vitals",
+    "plugin:tailwindcss/recommended",
+    "plugin:@typescript-eslint/recommended",
+    "prettier"
+  ],
+  "env": {
+    "browser": true,
+    "node": true,
+    "es6": true
+  },
+  "rules": {
+    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/ban-ts-comment": "warn",
+    "@typescript-eslint/no-unused-vars": [
+      "warn",
+      // Ignore unused variables that start with an underscore
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_"
+      }
+    ],
+    "no-console": "warn"
+  }
 }
