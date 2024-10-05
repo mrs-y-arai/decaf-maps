@@ -7,6 +7,7 @@ import {
   Marker,
   InfoWindow,
 } from '@react-google-maps/api';
+
 import { Button } from '~/components/ui/button';
 
 export default function Home() {
@@ -15,10 +16,13 @@ export default function Home() {
     height: '100vh',
   };
 
-  const center = {
+  const [center, setCenter] = useState<{
+    lat: number;
+    lng: number;
+  }>({
     lat: -3.745,
     lng: -38.523,
-  };
+  });
 
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
@@ -30,37 +34,63 @@ export default function Home() {
     lng: number;
   } | null>(null);
 
+  /**
+   * 現在地へ移動
+   */
+  const moveToCurrentLocation = () => {
+    // TODO: エラーハンドリング
+    navigator.geolocation.getCurrentPosition((position) => {
+      const { latitude, longitude } = position.coords;
+      setCenter({ lat: latitude, lng: longitude });
+    });
+  };
+
   return (
-    <div>
+    <div className="relative">
       {isLoaded ? (
-        <GoogleMap
-          onClick={(event) => {
-            const lat = event.latLng?.lat();
-            const lng = event.latLng?.lng();
-            if (lat && lng) {
-              setClickedLatLng({ lat, lng });
-            }
-          }}
-          mapContainerStyle={containerStyle}
-          center={center}
-          zoom={10}
-        >
-          <MarkerWithInfoWindow />
-          {clickedLatLng && (
-            <>
-              <Marker position={clickedLatLng} />
-              <InfoWindow
-                position={clickedLatLng}
-                onCloseClick={() => setClickedLatLng(null)}
-              >
-                <div>
-                  <div className="text-black">ここに場所を登録しますか？</div>
-                  <Button>登録する</Button>
-                </div>
-              </InfoWindow>
-            </>
-          )}
-        </GoogleMap>
+        <>
+          <GoogleMap
+            onClick={(event) => {
+              const lat = event.latLng?.lat();
+              const lng = event.latLng?.lng();
+              if (lat && lng) {
+                setClickedLatLng({ lat, lng });
+              }
+            }}
+            mapContainerStyle={containerStyle}
+            center={center}
+            zoom={15}
+            options={{
+              zoomControl: false,
+              streetViewControl: false,
+              maxZoom: 18,
+              minZoom: 8,
+              mapTypeControl: false,
+            }}
+          >
+            <Marker position={center} />
+            <MarkerWithInfoWindow />
+            {clickedLatLng && (
+              <>
+                <InfoWindow
+                  position={clickedLatLng}
+                  onCloseClick={() => setClickedLatLng(null)}
+                >
+                  <div>
+                    <div className="text-black">ここに場所を登録しますか？</div>
+                    <Button>登録する</Button>
+                  </div>
+                </InfoWindow>
+              </>
+            )}
+          </GoogleMap>
+          <Button
+            onClick={moveToCurrentLocation}
+            className="absolute bottom-10 right-10"
+          >
+            現在地へ移動
+          </Button>
+        </>
       ) : (
         <div>Loading...</div>
       )}
