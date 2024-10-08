@@ -1,19 +1,40 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
-  GoogleMap,
-  useJsApiLoader,
-  Marker,
+  APIProvider,
+  Map,
+  MapControl,
+  ControlPosition,
+  AdvancedMarker,
+  useAdvancedMarkerRef,
   InfoWindow,
-} from '@react-google-maps/api';
+  useMap,
+} from '@vis.gl/react-google-maps';
 
 import { Button } from '~/components/ui/button';
 
 export default function Home() {
+  return (
+    <div>
+      <h1 className="py-4 text-center text-2xl font-bold">行きつけマップ</h1>
+      <div className="relative mx-auto h-[600px] w-full">
+        <APIProvider
+          apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string}
+        >
+          <MapWrapper />
+        </APIProvider>
+      </div>
+    </div>
+  );
+}
+
+function MapWrapper() {
+  const map = useMap();
+
   const containerStyle = {
-    width: '100vw',
-    height: '100vh',
+    width: '100%',
+    height: '100%',
   };
 
   const [center, setCenter] = useState<{
@@ -22,11 +43,6 @@ export default function Home() {
   }>({
     lat: -3.745,
     lng: -38.523,
-  });
-
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
   });
 
   const [clickedLatLng, setClickedLatLng] = useState<{
@@ -41,85 +57,84 @@ export default function Home() {
     // TODO: エラーハンドリング
     navigator.geolocation.getCurrentPosition((position) => {
       const { latitude, longitude } = position.coords;
+      map?.panTo({ lat: latitude, lng: longitude });
       setCenter({ lat: latitude, lng: longitude });
     });
   };
 
   return (
-    <div className="relative">
-      {isLoaded ? (
-        <>
-          <GoogleMap
-            onClick={(event) => {
-              const lat = event.latLng?.lat();
-              const lng = event.latLng?.lng();
-              if (lat && lng) {
-                setClickedLatLng({ lat, lng });
-              }
-            }}
-            mapContainerStyle={containerStyle}
-            center={center}
-            zoom={15}
-            options={{
-              zoomControl: false,
-              streetViewControl: false,
-              maxZoom: 18,
-              minZoom: 8,
-              mapTypeControl: false,
-            }}
-          >
-            <Marker position={center} />
-            <MarkerWithInfoWindow />
-            {clickedLatLng && (
-              <>
-                <InfoWindow
-                  position={clickedLatLng}
-                  onCloseClick={() => setClickedLatLng(null)}
-                >
-                  <div>
-                    <div className="text-black">ここに場所を登録しますか？</div>
-                    <Button>登録する</Button>
-                  </div>
-                </InfoWindow>
-              </>
-            )}
-          </GoogleMap>
-          <Button
-            onClick={moveToCurrentLocation}
-            className="absolute bottom-10 right-10"
-          >
-            現在地へ移動
-          </Button>
-        </>
-      ) : (
-        <div>Loading...</div>
-      )}
-    </div>
+    <>
+      <Map
+        style={containerStyle}
+        defaultCenter={center}
+        defaultZoom={18}
+        gestureHandling={'greedy'}
+        disableDefaultUI={true}
+        mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_ID as string}
+        onClick={(event) => {
+          const lat = event.detail.latLng?.lat;
+          const lng = event.detail.latLng?.lng;
+
+          if (lat && lng) {
+            setClickedLatLng({ lat, lng });
+          }
+        }}
+      >
+        <MarkerWithInfoWindow
+          position={center}
+          content="現在地"
+          isDefaultOpen={true}
+        />
+        {clickedLatLng && (
+          <MarkerWithInfoWindow
+            position={clickedLatLng}
+            content="クリックした場所"
+          />
+        )}
+        <MapControl position={ControlPosition.BOTTOM_CENTER}>
+          <Button onClick={moveToCurrentLocation}>現在地へ移動</Button>
+        </MapControl>
+      </Map>
+    </>
   );
 }
 
-function MarkerWithInfoWindow() {
-  const [isOpenInfoWindow, setIsOpenInfoWindow] = useState(false);
+function MarkerWithInfoWindow({
+  position,
+  content,
+  isDefaultOpen = false,
+}: {
+  position: { lat: number; lng: number };
+  content: string;
+  isDefaultOpen?: boolean;
+}) {
+  // `markerRef` and `marker` are needed to establish the connection between
+  // the marker and infowindow (if you're using the Marker component, you
+  // can use the `useMarkerRef` hook instead).
+  const [markerRef, marker] = useAdvancedMarkerRef();
 
-  const center = {
-    lat: -3.745,
-    lng: -38.523,
-  };
+  const [infoWindowShown, setInfoWindowShown] = useState(isDefaultOpen);
 
-  const infoWindowCenter = {
-    lat: -3.705,
-    lng: -38.523,
-  };
+  // clicking the marker will toggle the infowindow
+  const handleMarkerClick = useCallback(
+    () => setInfoWindowShown((isShown) => !isShown),
+    [],
+  );
+
+  // if the maps api closes the infowindow, we have to synchronize our state
+  const handleClose = useCallback(() => setInfoWindowShown(false), []);
 
   return (
     <>
-      <Marker position={center} onClick={() => setIsOpenInfoWindow(true)} />
-      {isOpenInfoWindow && (
-        <InfoWindow
-          position={infoWindowCenter}
-          onCloseClick={() => setIsOpenInfoWindow(false)}
-        >
-          <div className="text-black">Hello World</div>
+      <AdvancedMarker
+        ref={markerRef}
+        position={position}
+        onClick={handleMarkerClick}
+      />
+
+      {infoWindowShown && (
+        <InfoWindow anchor={marker} onClose={handleClose}>
+          <p>{content}</p>
         </InfoWindow>
       )}
     </>
