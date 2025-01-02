@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import localFont from 'next/font/local';
 import './globals.css';
 import { LoadingUI } from '~/components/Loading';
+import { Provider } from 'jotai';
 
 const geistSans = localFont({
   src: './fonts/GeistVF.woff',
@@ -32,12 +33,14 @@ export default function RootLayout({
           content="width=device-width, initial-scale=1.0, maximum-scale=1.0,user-scalable=no"
         ></meta>
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
-        <LoadingUI />
-      </body>
+      <Provider>
+        <body
+          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        >
+          <LoadingUI />
+          {children}
+        </body>
+      </Provider>
     </html>
   );
 }
