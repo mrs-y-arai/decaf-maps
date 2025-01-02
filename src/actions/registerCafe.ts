@@ -24,7 +24,5 @@ export async function registerCafe(
     return { error: error.message };
   }
 
-  revalidatePath('/');
-
   return { data };
 }

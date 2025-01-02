@@ -59,6 +59,7 @@ function MapWrapper() {
     lat: number;
     lng: number;
   }>();
+  const [placeId, setPlaceId] = useState<string | null>(null);
   const [address, setAddress] = useState<string | null>(null);
 
   const geocoder = useMapsLibrary('geocoding');
@@ -80,6 +81,14 @@ function MapWrapper() {
 
   const isCenterDefault =
     currentLocation.lat === 3 && currentLocation.lng === 4;
+
+  useEffect(() => {
+    if (isCenterDefault) {
+      addLoadingKey('initMap');
+    } else {
+      removeLoadingKey('initMap');
+    }
+  }, [isCenterDefault]);
 
   const [clickedLatLng, setClickedLatLng] = useState<{
     lat: number;
@@ -163,12 +172,12 @@ function MapWrapper() {
         onCenterChanged={(event) => {
           setCenter(event.detail.center);
         }}
-        defaultZoom={18}
+        defaultZoom={20}
         gestureHandling={'greedy'}
         disableDefaultUI={true}
         mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_ID as string}
         onClick={(event) => {
-          if (!geocoder) return;
+          if (!geocoder || !places || !map) return;
 
           const lat = event.detail.latLng?.lat;
           const lng = event.detail.latLng?.lng;
@@ -176,12 +185,14 @@ function MapWrapper() {
           if (!lat || !lng) return;
 
           const _geocoder = new geocoder.Geocoder();
+          const _places = new places.PlacesService(map);
 
           if (lat && lng) {
             setClickedLatLng({ lat, lng });
             // @ts-ignore
             _geocoder.geocode({ location: { lat, lng } }, (results: any) => {
               setAddress(results?.[0]?.formatted_address ?? null);
+              setPlaceId(results[0].place_id);
             });
           }
 
@@ -256,6 +267,9 @@ function MapWrapper() {
           setIsOpen={setIsOpen}
           location={clickedLatLng}
           address={address}
+          placeId={placeId}
+          map={map}
+          searchNearByCafe={searchNearByCafe}
         />
       </Map>
       <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
@@ -412,7 +426,6 @@ function CafeMarker({
           headerContent={<p className="text-base font-bold">{name}</p>}
           anchor={marker}
           onClose={handleClose}
-          disableAutoPan
         >
           <div className="flex max-w-[300px] flex-col gap-2 pb-1">
             <div className="flex flex-col">
