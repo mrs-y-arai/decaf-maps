@@ -143,11 +143,13 @@ function MapWrapper() {
 
   useEffect(() => {
     if (currentLocation.lat !== 3 && currentLocation.lng !== 4) {
+      addLoadingKey('searchNearByCafe');
       getNearByCafe(currentLocation.lat, currentLocation.lng).then(
         (cafeList) => {
           setCafeList(cafeList);
         },
       );
+      removeLoadingKey('searchNearByCafe');
     }
   }, [currentLocation]);
 
@@ -410,6 +412,7 @@ function CafeMarker({
           headerContent={<p className="text-base font-bold">{name}</p>}
           anchor={marker}
           onClose={handleClose}
+          disableAutoPan
         >
           <div className="flex max-w-[300px] flex-col gap-2 pb-1">
             <div className="flex flex-col">
