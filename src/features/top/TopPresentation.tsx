@@ -29,7 +29,7 @@ export function TopPresentation() {
   return (
     <div>
       <h1 className="py-4 text-center text-2xl font-bold">デカフェマップ</h1>
-      <div className="relative mx-auto h-[90vh] w-full">
+      <div className="relative mx-auto h-[90svh] w-full">
         <APIProvider
           apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string}
         >
@@ -65,7 +65,7 @@ function MapWrapper() {
 
   const containerStyle = {
     width: '100%',
-    height: '90vh',
+    height: '90svh',
   };
 
   const [currentLocation, setCurrentLocation] = useState<{
