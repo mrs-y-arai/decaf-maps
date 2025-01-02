@@ -13,7 +13,7 @@ import {
   useMapsLibrary,
   Pin,
 } from '@vis.gl/react-google-maps';
-import { Coffee, ChevronRight } from 'lucide-react';
+import { Coffee, ChevronRight, Search } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { RegisterCafeDialog } from '~/components/RegisterCafeDialog';
 import { getNearByCafe } from '~/actions/getNearByCafe';
@@ -24,6 +24,7 @@ import {
   DrawerTitle,
 } from '~/components/ui/drawer';
 import { useLoadingState } from '~/hooks/useLoadingState';
+import { Input } from '~/components/ui/input';
 
 export function TopPresentation() {
   return (
@@ -62,6 +63,7 @@ function MapWrapper() {
 
   const geocoder = useMapsLibrary('geocoding');
   const geometry = useMapsLibrary('geometry');
+  const places = useMapsLibrary('places');
 
   const containerStyle = {
     width: '100%',
@@ -96,6 +98,25 @@ function MapWrapper() {
       map?.panTo({ lat: latitude, lng: longitude });
       setCurrentLocation({ lat: latitude, lng: longitude });
     });
+  };
+
+  const searchByText = async (keyword: string) => {
+    if (!center || !places || !map) return;
+    addLoadingKey('searchByText');
+    const _places = new places.PlacesService(map);
+    _places.textSearch(
+      {
+        query: keyword,
+      },
+      (results: any, status: any) => {
+        if (status !== google.maps.places.PlacesServiceStatus.OK || !results[0])
+          return;
+        const lat = results[0].geometry.location.lat();
+        const lng = results[0].geometry.location.lng();
+        map.panTo({ lat, lng });
+      },
+    );
+    removeLoadingKey('searchByText');
   };
 
   const searchNearByCafe = async () => {
@@ -134,8 +155,8 @@ function MapWrapper() {
     <>
       <Map
         style={containerStyle}
-        className={isCenterDefault ? 'opacity-0' : ''}
         defaultCenter={currentLocation}
+        className={isCenterDefault ? 'opacity-0' : ''}
         center={center}
         onCenterChanged={(event) => {
           setCenter(event.detail.center);
@@ -194,6 +215,29 @@ function MapWrapper() {
             />
           );
         })}
+        <MapControl position={ControlPosition.TOP_CENTER}>
+          <form
+            className="flex items-center pt-2"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const formData = new FormData(e.target as HTMLFormElement);
+              const keyword = formData.get('keyword') as string;
+              console.log(keyword);
+              if (!keyword) return;
+              await searchByText(keyword);
+            }}
+          >
+            <Input
+              className="h-[40px] w-[250px]"
+              placeholder="場所を検索"
+              type="text"
+              name="keyword"
+            />
+            <Button className="size-[40px] px-2" type="submit">
+              <Search size={20} />
+            </Button>
+          </form>
+        </MapControl>
         <MapControl position={ControlPosition.BOTTOM_CENTER}>
           <div className="mx-auto flex items-center justify-center gap-2 pb-5">
             <Button onClick={moveToCurrentLocation}>現在地へ</Button>
