@@ -13,7 +13,8 @@ import { Button } from '~/components/ui/button';
 import { Label } from '~/components/ui/label';
 import { Input } from '~/components/ui/input';
 import { Textarea } from '~/components/ui/textarea';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useMapsLibrary } from '@vis.gl/react-google-maps';
 
 type Props = {
   isOpen: boolean;
@@ -23,6 +24,9 @@ type Props = {
     lng: number;
   } | null;
   address: string | null;
+  placeId: string | null;
+  map: google.maps.Map | null;
+  searchNearByCafe: () => Promise<void>;
 };
 
 export function RegisterCafeDialog({
@@ -30,9 +34,27 @@ export function RegisterCafeDialog({
   setIsOpen,
   location,
   address,
+  placeId,
+  map,
+  searchNearByCafe,
 }: Props) {
+  const places = useMapsLibrary('places');
+
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+
+  const resetForm = () => {
+    setName('');
+    setDescription('');
+  };
+
+  useEffect(() => {
+    if (!placeId || !places || !map) return;
+    const _places = new places.PlacesService(map);
+    _places.getDetails({ placeId }, (result: any) => {
+      setName(result.name ?? '');
+    });
+  }, [placeId]);
 
   const handleSubmit = async (formData: FormData) => {
     const name = formData.get('name') as string;
@@ -43,6 +65,10 @@ export function RegisterCafeDialog({
     await registerCafe(name, location, description);
 
     alert('登録しました');
+
+    resetForm();
+    await searchNearByCafe();
+    setIsOpen(false);
   };
 
   return (
@@ -60,8 +86,8 @@ export function RegisterCafeDialog({
               <Label htmlFor="name">店名</Label>
               <Input
                 id="name"
-                value={name}
                 placeholder="例: スターバックス 井の頭公園店"
+                value={name}
                 onChange={(e) => setName(e.target.value)}
               />
             </div>
